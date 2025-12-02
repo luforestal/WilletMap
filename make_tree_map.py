@@ -17,7 +17,7 @@ OUTPUT_HTML = "willet_tree_map.html"
 # MAIN FUNCTION
 # =====================================================
 
-def build_tree_map(data_path, boundary_shp="Shapes/Boundaries.shp"):
+def build_tree_map(data_path, boundary_shp="Boundaries.shp"):
     """
     Creates a folium tree map with canopy circles, polygon markers by genus,
     and school boundary overlay from a shapefile.
@@ -207,3 +207,4 @@ def build_tree_map(data_path, boundary_shp="Shapes/Boundaries.shp"):
     m.save(base_dir / OUTPUT_HTML)
 
     return m
+
