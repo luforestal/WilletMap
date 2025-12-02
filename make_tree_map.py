@@ -7,7 +7,7 @@ import geopandas as gpd
 import zipfile
 import base64
 import subprocess
-
+import sys
 
 # =====================================================
 # CONFIG
@@ -17,28 +17,50 @@ DATA_FILE = "WilletTreeInventory_coordinates.xlsx"
 SHEET_NAME = 1
 OUTPUT_HTML = "willet_tree_map.html"
 
-PHOTOS_ZIP = "Photos.zip"
+# ZIP de fotos en Google Drive
+DRIVE_ID = "1MzOkSNNjIejlXAKqPJUyxqozCrzuwmJT"
+DOWNLOAD_ZIP = "extra_data.zip"
+
 PHOTOS_DIR = "Photos"
+
+# =====================================================
+# DOWNLOAD + UNZIP PHOTOS (AUTO)
+# =====================================================
+
+base_dir = Path(__file__).parent.resolve()
+photos_dir = base_dir / PHOTOS_DIR
+download_path = base_dir / DOWNLOAD_ZIP
+
+# Instalar gdown si no existe
+try:
+    import gdown
+except ImportError:
+    subprocess.run([
+        sys.executable,
+        "-m", "pip", "install", "-q", "gdown"
+    ])
+    import gdown
+
+# Descargar ZIP si no existe
+if not download_path.exists():
+    print("⬇️ Downloading photos from Google Drive...")
+    gdown.download(
+        id=DRIVE_ID,
+        output=str(download_path),
+        quiet=False
+    )
+
+# Extraer ZIP si carpeta no existe
+if download_path.exists() and not photos_dir.exists():
+    print("📸 Extracting photos...")
+    with zipfile.ZipFile(download_path, "r") as z:
+        z.extractall(photos_dir)
 
 # =====================================================
 # MAIN FUNCTION
 # =====================================================
-drive_id = "1MzOkSNNjIejlXAKqPJUyxqozCrzuwmJT"
-download_file = "extra_data.zip"
-
-if not Path(download_file).exists():
-    subprocess.run([
-        "gdown",
-        "--id", drive_id,
-        "-O", download_file
-    ])
-
 
 def build_tree_map(data_path, boundary_shp="Boundaries.shp"):
-    """
-    Creates an interactive folium tree map with canopy circles, polygon markers
-    by genus, school boundary overlay, and a popup with a photo per tree.
-    """
 
     # ==========================
     # PATHS
@@ -47,35 +69,31 @@ def build_tree_map(data_path, boundary_shp="Boundaries.shp"):
     data_path = Path(data_path)
     boundary_path = base_dir / boundary_shp
 
-    photos_zip = base_dir / PHOTOS_ZIP
-    photos_dir = base_dir / PHOTOS_DIR
-
-    # ==========================
-    # UNZIP PHOTOS (run once)
-    # ==========================
-    if photos_zip.exists() and not photos_dir.exists():
-        print("📸 Extracting photos...")
-        with zipfile.ZipFile(photos_zip, "r") as z:
-            z.extractall(photos_dir)
-
     # ==========================
     # LOAD INVENTORY
     # ==========================
     df = pd.read_excel(data_path, sheet_name=SHEET_NAME)
     df_map = df.dropna(subset=["lat", "lon"]).copy()
 
-    center = [df_map["lat"].mean(),
-              df_map["lon"].mean()]
+    center = [
+        df_map["lat"].mean(),
+        df_map["lon"].mean()
+    ]
 
     # ==========================
     # BASE MAP
     # ==========================
-    m = folium.Map(location=center,
-                   zoom_start=18,
-                   tiles="OpenStreetMap",
-                   name="OSM")
+    m = folium.Map(
+        location=center,
+        zoom_start=18,
+        tiles="OpenStreetMap",
+        name="OSM"
+    )
 
-    folium.TileLayer("CartoDB positron", name="CartoDB positron").add_to(m)
+    folium.TileLayer(
+        "CartoDB positron",
+        name="CartoDB positron"
+    ).add_to(m)
 
     folium.TileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{x}/{y}",
@@ -86,7 +104,7 @@ def build_tree_map(data_path, boundary_shp="Boundaries.shp"):
     ).add_to(m)
 
     # ==========================
-    # BOUNDARY SHAPEFILE
+    # SCHOOL BOUNDARY
     # ==========================
     if boundary_path.exists():
 
@@ -107,8 +125,9 @@ def build_tree_map(data_path, boundary_shp="Boundaries.shp"):
                 "fillOpacity": 0
             }
         ).add_to(m)
+
     else:
-        print(f"⚠ WARNING: boundary shapefile not found -> {boundary_path}")
+        print("⚠ WARNING: boundary not found ->", boundary_path)
 
     # ==========================
     # GENUS STYLES
@@ -126,17 +145,19 @@ def build_tree_map(data_path, boundary_shp="Boundaries.shp"):
     ]
 
     colors = [
-        "red", "blue", "green", "purple", "orange",
-        "darkred", "darkblue", "darkgreen", "cadetblue",
-        "pink", "black", "gray"
+        "red","blue","green","purple","orange",
+        "darkred","darkblue","darkgreen","cadetblue",
+        "pink","black","gray"
     ]
 
     shape_cycle = cycle(shape_specs)
     color_cycle = cycle(colors)
 
     genus_styles = {
-        g: {"shape": next(shape_cycle),
-            "color": next(color_cycle)}
+        g: {
+            "shape": next(shape_cycle),
+            "color": next(color_cycle)
+        }
         for g in genera
     }
 
@@ -147,11 +168,11 @@ def build_tree_map(data_path, boundary_shp="Boundaries.shp"):
 
         lat, lon = float(r["lat"]), float(r["lon"])
         genus = r.get("Genus", "NA")
-        tree_code = r.get("TreeCode", "").strip()
+        tree_code = str(r.get("TreeCode", "")).strip()
 
         style = genus_styles.get(genus)
 
-        # ---- CANOPY SIZE ----
+        # -------- CANOPY SIZE --------
         ns = r.get("CrownNSm", np.nan)
         ew = r.get("CrownEWm", np.nan)
 
@@ -164,52 +185,50 @@ def build_tree_map(data_path, boundary_shp="Boundaries.shp"):
             crown_radius = ew / 2
 
         if crown_radius:
-            folium.Circle([lat, lon],
-                           radius=crown_radius,
-                           fill=True,
-                           fill_opacity=0.3,
-                           color=None,
-                           stroke=False).add_to(m)
+            folium.Circle(
+                location=[lat, lon],
+                radius=crown_radius,
+                fill=True,
+                fill_opacity=0.3,
+                color=None,
+                stroke=False
+            ).add_to(m)
 
-        # ==========================
-        # PHOTO LOOKUP
-        # ==========================
+        # -------- PHOTO LOOKUP --------
         photo_html = ""
-        
+
         if tree_code and photos_dir.exists():
-        
-            code = tree_code.strip().lower()
-        
+
+            code = tree_code.lower()
+
             matches = [
                 p for p in photos_dir.iterdir()
                 if code in p.stem.lower()
-                and p.suffix.lower() in [".jpg", ".jpeg", ".png"]
+                and p.suffix.lower() in [".jpg",".jpeg",".png"]
             ]
-        
+
             if matches:
-        
+
                 img_path = matches[0]
-        
-                with open(img_path, "rb") as img_file:
-                    encoded = base64.b64encode(img_file.read()).decode("utf-8")
-        
+
+                with open(img_path, "rb") as f:
+                    encoded = base64.b64encode(f.read()).decode("utf-8")
+
                 ext = img_path.suffix.lower().replace(".", "")
                 if ext == "jpg":
                     ext = "jpeg"
-        
+
                 photo_html = f"""
                 <br>
                 <img src="data:image/{ext};base64,{encoded}"
                      width="200"
-                     style="border-radius:8px; margin-top:6px;">
+                     style="border-radius:8px;margin-top:6px;">
                 """
-        
+
             else:
                 photo_html = "<br><i>No photo available</i>"
 
-        # ==========================
-        # POPUP
-        # ==========================
+        # -------- POPUP --------
         popup_html = f"""
         <div style="font-size:13px;">
             <b>Tree code:</b> {tree_code}<br>
@@ -223,7 +242,7 @@ def build_tree_map(data_path, boundary_shp="Boundaries.shp"):
 
         popup = folium.Popup(popup_html, max_width=300)
 
-        # ---- MARKERS ----
+        # -------- MARKERS --------
         if style:
             shape = style["shape"]
             color = style["color"]
@@ -232,7 +251,7 @@ def build_tree_map(data_path, boundary_shp="Boundaries.shp"):
             color = "gray"
 
         folium.RegularPolygonMarker(
-            [lat, lon],
+            location=[lat, lon],
             number_of_sides=shape["sides"],
             rotation=shape["rotation"],
             radius=7,
@@ -243,16 +262,9 @@ def build_tree_map(data_path, boundary_shp="Boundaries.shp"):
         ).add_to(m)
 
     # ==========================
-    # CONTROLS + SAVE
+    # FINALIZE
     # ==========================
     folium.LayerControl().add_to(m)
-
     m.save(base_dir / OUTPUT_HTML)
 
     return m
-
-
-
-
-
-
