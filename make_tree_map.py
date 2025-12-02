@@ -5,6 +5,8 @@ from itertools import cycle
 from pathlib import Path
 import geopandas as gpd
 import zipfile
+import base64
+
 
 # =====================================================
 # CONFIG
@@ -170,18 +172,27 @@ def build_tree_map(data_path, boundary_shp="Boundaries.shp"):
             matches = [
                 p for p in photos_dir.iterdir()
                 if code in p.stem.lower()
-                and p.suffix.lower() in [".jpg",".jpeg",".png"]
+                and p.suffix.lower() in [".jpg", ".jpeg", ".png"]
             ]
         
             if matches:
+        
                 img_path = matches[0]
+        
+                with open(img_path, "rb") as img_file:
+                    encoded = base64.b64encode(img_file.read()).decode("utf-8")
+        
+                ext = img_path.suffix.lower().replace(".", "")
+                if ext == "jpg":
+                    ext = "jpeg"
         
                 photo_html = f"""
                 <br>
-                <img src="{PHOTOS_DIR}/{img_path.name}"
+                <img src="data:image/{ext};base64,{encoded}"
                      width="200"
                      style="border-radius:8px; margin-top:6px;">
                 """
+        
             else:
                 photo_html = "<br><i>No photo available</i>"
 
@@ -228,6 +239,7 @@ def build_tree_map(data_path, boundary_shp="Boundaries.shp"):
     m.save(base_dir / OUTPUT_HTML)
 
     return m
+
 
 
 
