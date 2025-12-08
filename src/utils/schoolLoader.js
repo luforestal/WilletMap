@@ -3,13 +3,8 @@
  * Loads school metadata and provides utilities for multi-school support
  */
 
-const GITHUB_CONFIG = {
-  username: 'luforestal',
-  repo: 'WilletMap',
-  branch: 'main'
-}
-
-const GITHUB_RAW_BASE = `https://raw.githubusercontent.com/${GITHUB_CONFIG.username}/${GITHUB_CONFIG.repo}/refs/heads/${GITHUB_CONFIG.branch}`
+// Use relative paths that work both locally and on GitHub Pages
+const BASE_PATH = import.meta.env.BASE_URL || '/'
 
 /**
  * Parse CSV text into array of objects
@@ -58,7 +53,7 @@ function parseCSVLine(line) {
  */
 export async function loadSchools() {
   try {
-    const response = await fetch(`${GITHUB_RAW_BASE}/public/schools.csv`)
+    const response = await fetch(`${BASE_PATH}schools.csv`)
     if (!response.ok) {
       throw new Error(`Failed to load schools: ${response.statusText}`)
     }
@@ -69,14 +64,14 @@ export async function loadSchools() {
     return schools.map(school => ({
       id: school.id,
       school_name: school.school_name,
-      logo: school.logo,
+      logo: school.logo ? `${BASE_PATH}${school.logo}` : `${BASE_PATH}logos/${school.id}.png`,
       address: school.address,
       data_file: school.data_file || `trees/${school.id}.csv`,
       boundary_file: school.boundary_file || `boundaries/${school.id}.geojson`,
-      photos_folder: school.photos_folder || `public/photos/${school.id}`,
-      dataUrl: `${GITHUB_RAW_BASE}/public/${school.data_file || `trees/${school.id}.csv`}`,
-      boundaryUrl: `${GITHUB_RAW_BASE}/public/${school.boundary_file || `boundaries/${school.id}.geojson`}`,
-      photosUrl: `${GITHUB_RAW_BASE}/${school.photos_folder || `public/photos/${school.id}`}`
+      photos_folder: school.photos_folder || `photos/${school.id}`,
+      dataUrl: `${BASE_PATH}${school.data_file || `trees/${school.id}.csv`}`,
+      boundaryUrl: `${BASE_PATH}${school.boundary_file || `boundaries/${school.id}.geojson`}`,
+      photosUrl: `${BASE_PATH}${school.photos_folder || `photos/${school.id}`}`
     }))
   } catch (error) {
     console.error('Error loading schools:', error)
@@ -98,7 +93,7 @@ export function getSchoolIdFromURL() {
  */
 export async function getSchoolConfig(schoolId) {
   const schools = await loadSchools()
-  const school = schools.find(s => s.schoolId === schoolId)
+  const school = schools.find(s => s.id === schoolId)
   
   if (!school) {
     throw new Error(`School not found: ${schoolId}`)
@@ -110,18 +105,16 @@ export async function getSchoolConfig(schoolId) {
 /**
  * Load boundary data for a school
  */
-export async function loadSchoolBoundary(boundaryFile) {
+export async function loadSchoolBoundary(boundaryUrl) {
   try {
-    const response = await fetch(`${GITHUB_RAW_BASE}/public/${boundaryFile}`)
+    const response = await fetch(boundaryUrl)
     if (!response.ok) {
-      console.warn(`No boundary file found: ${boundaryFile}`)
+      console.warn(`No boundary file found: ${boundaryUrl}`)
       return null
     }
     return await response.json()
   } catch (error) {
-    console.warn(`Error loading boundary: ${boundaryFile}`, error)
+    console.warn(`Error loading boundary: ${boundaryUrl}`, error)
     return null
   }
 }
-
-export { GITHUB_CONFIG }

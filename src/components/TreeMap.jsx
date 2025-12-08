@@ -32,17 +32,14 @@ const TreeMap = () => {
         setSchoolConfig(config)
         
         // Load boundary
-        const boundaryGeoJSON = await loadSchoolBoundary(config.boundaryFile)
+        const boundaryGeoJSON = await loadSchoolBoundary(config.boundaryUrl)
         setBoundary(boundaryGeoJSON)
         
         // Load tree data
         const { trees } = await loadTreeData(
           config.dataUrl,
           {
-            username: 'luforestal',
-            repo: 'WilletMap',
-            branch: 'main',
-            photosFolder: config.photosFolder
+            photosUrl: config.photosUrl
           }
         )
         setTreeData(trees)
@@ -372,6 +369,16 @@ const TreeMap = () => {
           </div>
         </div>
       )}
+      
+      {/* Help button - floating bottom left */}
+      <button 
+        className="help-icon-button"
+        onClick={() => setShowInstructionsModal(true)}
+        title="How to use this map"
+      >
+        ❓
+      </button>
+      
       <div className="map-controls">
         <button 
           className={currentStyle === 'osm' ? 'active' : ''} 
@@ -432,15 +439,6 @@ const TreeMap = () => {
                       {new Set(treeData.map(t => t.genus)).size}
                     </span>
                   </div>
-                </div>
-
-                <div className="info-box">
-                  <button 
-                    className="help-button"
-                    onClick={() => setShowInstructionsModal(true)}
-                  >
-                    ❓ How to Use This Map
-                  </button>
                 </div>
 
                 <div className="search-section">

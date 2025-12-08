@@ -641,6 +641,37 @@
   background: #2d5016;
 }
 
+/* Help icon button - floating bottom left */
+.help-icon-button {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 50px;
+  height: 50px;
+  background: #4a7c2c;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  z-index: 5;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.help-icon-button:hover {
+  background: #2d5016;
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+}
+
+.help-icon-button:active {
+  transform: scale(0.95);
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .tree-sidebar {
