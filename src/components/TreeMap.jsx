@@ -23,11 +23,14 @@ const TreeMap = () => {
     const loadData = async () => {
       try {
         setLoading(true)
-        const { trees } = await loadTreeData('/tree_data.csv', {
-          username: 'luforestal',
-          repo: 'WilletMap',
-          branch: 'main'
-        })
+        const { trees } = await loadTreeData(
+          'https://raw.githubusercontent.com/luforestal/WilletMap/refs/heads/main/public/tree_data.csv',
+          {
+            username: 'luforestal',
+            repo: 'WilletMap',
+            branch: 'main'
+          }
+        )
         setTreeData(trees)
         setLoading(false)
       } catch (err) {
