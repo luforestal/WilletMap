@@ -54,11 +54,11 @@ export async function loadSchools() {
 
 /**
  * Get school ID from URL parameter
- * Format: ?school=willet
+ * Format: ?school=wildav
  */
 export function getSchoolIdFromURL() {
   const params = new URLSearchParams(window.location.search)
-  return params.get('school') || 'willet' // Default to willet
+  return params.get('school') || 'wildav' // Default to wildav
 }
 
 /**
