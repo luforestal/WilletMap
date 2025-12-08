@@ -63,12 +63,9 @@ export async function loadSchools() {
     
     return schools.map(school => ({
       id: school.id,
-      school_name: school.school_name,
+      schoolName: school.school_name,
       logo: school.logo ? `${BASE_PATH}${school.logo}` : `${BASE_PATH}logos/${school.id}.png`,
       address: school.address,
-      data_file: school.data_file || `trees/${school.id}.csv`,
-      boundary_file: school.boundary_file || `boundaries/${school.id}.geojson`,
-      photos_folder: school.photos_folder || `photos/${school.id}`,
       dataUrl: `${BASE_PATH}${school.data_file || `trees/${school.id}.csv`}`,
       boundaryUrl: `${BASE_PATH}${school.boundary_file || `boundaries/${school.id}.geojson`}`,
       photosUrl: `${BASE_PATH}${school.photos_folder || `photos/${school.id}`}`
