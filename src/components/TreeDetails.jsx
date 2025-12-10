@@ -9,7 +9,7 @@ const TreeDetails = ({
   onNext, 
   onPrev 
 }) => {
-  const [imageLoading, setImageLoading] = useState(!!tree.treeCode && !!tree.photosBaseUrl)
+  const [imageLoading, setImageLoading] = useState(!!tree.photoUrl)
 
   return (
     <Box>
@@ -48,7 +48,7 @@ const TreeDetails = ({
 
       {/* Photo Section */}
       <Box sx={{ mb: 2 }} key={tree.treeCode}>
-        {tree.treeCode && tree.photosBaseUrl ? (
+        {tree.photoUrl ? (
           <>
             {imageLoading && (
               <Box
@@ -66,7 +66,7 @@ const TreeDetails = ({
               </Box>
             )}
             <img 
-              src={`${tree.photosBaseUrl}/${tree.treeCode}.jpg`}
+              src={tree.photoUrl}
               alt={`Tree ${tree.treeCode}`}
               style={{
                 width: '100%',
