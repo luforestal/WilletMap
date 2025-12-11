@@ -8,20 +8,63 @@ const MapView = ({
   boundary, 
   currentStyle, 
   onStyleChange, 
-  onTreeSelect 
+  onTreeSelect,
+  mapRef 
 }) => {
   const mapContainer = useRef(null)
   const map = useRef(null)
   const markersRef = useRef([])
+  const boundsRef = useRef(null)
+
+  // Calculate bounds from geometry
+  const calculateBounds = (boundary, treeData) => {
+    let coordinates = []
+    
+    // Get coordinates from boundary if available
+    if (boundary && boundary.features && boundary.features.length > 0) {
+      boundary.features.forEach(feature => {
+        if (feature.geometry.type === 'Polygon') {
+          coordinates.push(...feature.geometry.coordinates[0])
+        } else if (feature.geometry.type === 'MultiPolygon') {
+          feature.geometry.coordinates.forEach(polygon => {
+            coordinates.push(...polygon[0])
+          })
+        }
+      })
+    }
+    
+    // Fallback to tree data if no boundary
+    if (coordinates.length === 0 && treeData.length > 0) {
+      coordinates = treeData.map(tree => [tree.lon, tree.lat])
+    }
+    
+    if (coordinates.length === 0) {
+      return { center: [0, 0], bounds: null }
+    }
+    
+    // Calculate bounding box
+    const lons = coordinates.map(coord => coord[0])
+    const lats = coordinates.map(coord => coord[1])
+    const minLon = Math.min(...lons)
+    const maxLon = Math.max(...lons)
+    const minLat = Math.min(...lats)
+    const maxLat = Math.max(...lats)
+    
+    const centerLon = (minLon + maxLon) / 2
+    const centerLat = (minLat + maxLat) / 2
+    
+    return {
+      center: [centerLon, centerLat],
+      bounds: [[minLon, minLat], [maxLon, maxLat]]
+    }
+  }
 
   // Initialize map
   useEffect(() => {
     if (map.current || treeData.length === 0) return
 
-    const lats = treeData.map(t => t.lat)
-    const lons = treeData.map(t => t.lon)
-    const centerLat = lats.reduce((a, b) => a + b, 0) / lats.length
-    const centerLon = lons.reduce((a, b) => a + b, 0) / lons.length
+    const { center, bounds } = calculateBounds(boundary, treeData)
+    boundsRef.current = bounds
 
     map.current = new maplibregl.Map({
       container: mapContainer.current,
@@ -45,11 +88,18 @@ const MapView = ({
           }
         ]
       },
-      center: [centerLon, centerLat],
-      zoom: 18
+      center: center,
+      zoom: 15
     })
 
     map.current.on('load', () => {
+      // Fit to bounds if available
+      if (bounds) {
+        map.current.fitBounds(bounds, {
+          padding: 50,
+          maxZoom: 18
+        })
+      }
       // Add boundary layer
       if (boundary) {
         map.current.addSource('boundary', {
@@ -123,8 +173,13 @@ const MapView = ({
 
     // Add navigation controls
     map.current.addControl(new maplibregl.NavigationControl(), 'top-right')
+    
+    // Expose map instance to parent
+    if (mapRef) {
+      mapRef.current = map.current
+    }
 
-  }, [treeData, boundary, onTreeSelect])
+  }, [treeData, boundary, onTreeSelect, mapRef])
 
   // Handle style changes
   useEffect(() => {

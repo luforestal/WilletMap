@@ -29,6 +29,7 @@ const TreeMap = () => {
   const [showInstructionsModal, setShowInstructionsModal] = useState(true)
   const [schoolConfig, setSchoolConfig] = useState(null)
   const [boundary, setBoundary] = useState(null)
+  const mapRef = React.useRef(null)
 
   // Load school configuration and data
   useEffect(() => {
@@ -70,6 +71,15 @@ const TreeMap = () => {
     const selectedMarker = document.querySelector(`[data-tree-code="${tree.treeCode}"]`)
     if (selectedMarker) {
       selectedMarker.classList.add('active')
+    }
+    
+    // Center map on selected tree
+    if (mapRef.current) {
+      mapRef.current.flyTo({
+        center: [tree.lon, tree.lat],
+        zoom: 19,
+        duration: 1000
+      })
     }
   }
 
@@ -170,6 +180,7 @@ const TreeMap = () => {
         currentStyle={currentStyle}
         onStyleChange={setCurrentStyle}
         onTreeSelect={handleTreeSelect}
+        mapRef={mapRef}
       />
       
       {/* Sidebar */}
